@@ -1,0 +1,16 @@
+digraph mesh {
+v4 -> v6
+v6 -> v2
+v2 -> v6 [color=blue]
+v2 -> v3
+v3 -> v2 [color=blue]
+v3 -> v4
+v4 -> v3 [color=blue]
+v6 -> v4
+v4 -> v1
+v1 -> v4 [color=blue]
+v1 -> v5
+v5 -> v1 [color=blue]
+v5 -> v6
+v6 -> v5 [color=blue]
+}
