@@ -187,6 +187,8 @@ function Mesh:new(o)
     setmetatable(o.edges, {__mode="v"})
     setmetatable(o.vertices, {__mode="v"})
 
+    o.idnewface = 1
+
     self.__index = self
     return o
 end
@@ -248,11 +250,17 @@ function Mesh:get_edge(v1, v2)
     return self.edges[sv1..'>'..sv2]
 end
 
+function Mesh:create_face()
+    local face = Face:new{id = self.idnewface}
+    self.idnewface = self.idnewface+1
+    self.faces[face.id] = face
+    return face
+end
+
 function Mesh:add_face(...)
     local ids = {...}
 
-    local face = Face:new{id = #self.faces+1}
-    self.faces[face.id] = face
+    local face = self:create_face()
 
     local vertices = {}
     for v=1,#ids do
@@ -361,8 +369,8 @@ function Mesh:split_face(face, v)
     -- add new edges
     for _,e in ipairs(edges) do
         if e ~= face.edge then
-            face = Face:new{id = #self.faces+1, edge = e}
-            self.faces[face.id] = face
+            face = self:create_face()
+            face.edge = e
         end
 
         -- reuse original edge #1 (v1->v2)
@@ -469,8 +477,8 @@ function Mesh:split_edge(edge, v)
         while edge ~= end_inner_edge do
             local next_edge = edge.next
 
-            edge.face = Face:new{id = #self.faces+1, edge = edge}
-            self.faces[edge.face.id] = edge.face
+            edge.face = self:create_face()
+            edge.face.edge = edge
 
             edge.next = Edge:new{vtx = edge.next.vtx,
                                  face = edge.face,
@@ -500,8 +508,8 @@ function Mesh:split_edge(edge, v)
         -- process last face (it already has 2 edges, one from split
         -- (other edge), other from original face
 
-        edge.face = Face:new{id = #self.faces+1, edge = edge}
-        self.faces[edge.face.id] = edge.face
+        edge.face = self:create_face()
+        edge.face.edge = edge
 
         edge.next.face = edge.face
 
