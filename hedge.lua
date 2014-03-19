@@ -89,21 +89,26 @@ function Edge:new(o)
     self.__index = self
     return o
 end
-function Edge:__tostring()
-    return "Edge #"..self:id()
+function Edge.__eq(a,b)
+    return a.id == b.id
 end
-function Edge:id()
+function Edge:key()
     if self.next == nil then
         return tostring(self.vtx.id)..">nil"
     else
         return tostring(self.vtx.id)..">"..tostring(self.next.vtx.id)
     end
 end
+function Edge:__tostring()
+    return "Edge #"..self.id.." "..self:key()
+end
 function is_edge(e)
     return type(e)=="table" and getmetatable(e)==Edge
 end
 
 function Edge:check(check_opp)
+    assert(self.id ~= nil, "edge must have an id")
+
     check_opp = check_opp==nil and true or check_opp
 
     assert(self.next.prev == self, tostring(self)..": bad edge forward link")
@@ -188,6 +193,7 @@ function Mesh:new(o)
     setmetatable(o.vertices, {__mode="v"})
 
     o.idnewface = 1
+    o.idnewedge = 1
 
     self.__index = self
     return o
@@ -222,11 +228,17 @@ function Mesh:add_edge(e)
     assert(e.vtx ~= nil, "edge must have a valid src vertex")
     assert(e.next.vtx ~= nil, "edge must have a valid target vertex")
     assert(e.vtx ~= e.next.vtx, "singular edges not allowed")
-    self.edges[e:id()] = e
+
+    if e.id == nil then
+        e.id = self.idnewedge
+        self.idnewedge = self.idnewedge+1
+    end
+
+    self.edges[e:key()] = e
     return e
 end
 function Mesh:remove_edge(e)
-    self.edges[e:id()] = nil
+    self.edges[e:key()] = nil
 end
 
 function Mesh:get_or_add_vertex(id)
