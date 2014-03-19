@@ -564,7 +564,7 @@ end
 function Mesh:split_edge(edge, v, reuse_face)
     assert(self:get_vertex(v) == nil, "Must split edge using a new vertex")
 
-    reuse_face = reuse_face == nil and true or reuse_face
+    -- first we'll split the edge
 
     v = self:add_vertex(v)
 
@@ -587,6 +587,8 @@ function Mesh:split_edge(edge, v, reuse_face)
     edge.vtx = v
     v.edge = edge
 
+    self:_add_edge(edge.prev)
+
     -- split opp edge
     edge.opp.next = Edge:new{vtx = v,
                              face = edge.opp.face,
@@ -595,109 +597,23 @@ function Mesh:split_edge(edge, v, reuse_face)
                              opp = edge.prev}
     edge.opp.next.next.prev = edge.opp.next
 
+    self:_add_edge(edge.opp.next)
+
     -- fix opp links
     edge.opp.opp = edge
     edge.prev.opp = edge.opp.next
 
-    function split_face(edge)
-        local orig_face = edge.face
+    -- then we create triangles on edge's face, linking the added vertex to
+    -- each vertex (minus 2)
 
-        local begin_inner_edge = edge.next.next
-        local end_inner_edge = edge.prev.prev
-
-        -- process first face (it already has 2 edges, one from
-        -- split (original edge), other from original face (edge.next)
-        if not reuse_face then
-            edge.face = self:create_face()
-            edge.face.edge = edge
-            edge.next.face = edge.face
-        end
-
-        edge.next.next = Edge:new{vtx = edge.next.next.vtx,
-                                  face = edge.face,
-                                  prev = edge.next,
-                                  next = edge}
-        edge.prev = edge.next.next
-
-        -- forcing this edge's face's edge to be this edge so that processing
-        -- is the same on both sides
-        edge.face.edge = edge
-
-        self:_add_edge(edge)
-        self:_add_edge(edge.next)
-        self:_add_edge(edge.next.next)
-
-        if not reuse_face then
-            self:remove_face(orig_face)
-        end
-
-        -- process new inner faces
-        local last_edge = edge.next
-        edge = begin_inner_edge
-        while edge ~= end_inner_edge do
-            local next_edge = edge.next
-
-            edge.face = self:create_face()
-            edge.face.edge = edge
-
-            edge.next = Edge:new{vtx = edge.next.vtx,
-                                 face = edge.face,
-                                 prev = edge}
-
-
-            edge.next.next = Edge:new{vtx = v,
-                                      face = edge.face,
-                                      prev = edge.next,
-                                      next = edge}
-
-            edge.prev = edge.next.next
-            edge.next.next = edge.prev
-
-            -- fix opposite edges
-            edge.prev.opp = last_edge.next
-            last_edge.next.opp = edge.prev
-
-            self:_add_edge(edge)
-            self:_add_edge(edge.next)
-            self:_add_edge(edge.next.next)
-
-            last_edge = edge
-            edge = next_edge
-        end
-
-        -- process last face (it already has 2 edges, one from split
-        -- (other edge), other from original face
-
-        edge.face = self:create_face()
-        edge.face.edge = edge
-
-        edge.next.face = edge.face
-
-        edge.prev = Edge:new{vtx = v,
-                             face = edge.face,
-                             prev = edge.next,
-                             next = edge,
-                             opp = last_edge.next}
-
-        edge.next.next = edge.prev
-        last_edge.next.opp = edge.prev
-
-        self:_add_edge(edge)
-        self:_add_edge(edge.next)
-        self:_add_edge(edge.next.next)
-    end
-
-    -- split one side
     if edge.face ~= nil then
-        split_face(edge)
-    else
-        self:_add_edge(edge.prev)
+        self:triangulate(edge, reuse_face)
     end
-    -- split the other
-    if edge.opp.next.face ~= nil then
-        split_face(edge.opp.next)
-    else
-        self:_add_edge(edge.opp.next)
+
+    -- same thing on edge.opp.face
+
+    if edge.opp.face ~= nil then
+        self:triangulate(edge.opp.next, reuse_face)
     end
 
     return v
@@ -1030,6 +946,8 @@ function test(c, out)
         e:check()
         assert(e.face == face)
 
+        assert(e.face == face)
+
         nfaces = mesh:face_count()
         nedges = mesh:edge_count()
         nvertices = mesh:vertex_count()
@@ -1094,12 +1012,14 @@ function test(c, out)
         assert(nfaces == 3, "wrong number of faces: "..nfaces)
     elseif c == "split_edge3" then
         local f = mesh:add_face(1,2,3)
-        mesh:split_edge(f.edge,4)
+        local vtx = mesh:split_edge(f.edge,4)
         local nfaces = mesh:face_count()
         assert(nfaces == 2, "wrong number of faces: "..nfaces)
     elseif c == "split_edge4" then
         local f = mesh:add_face(1,2,3,4)
+        local fe = f.edge
         local vtx = mesh:split_edge(f.edge,5)
+        assert(f.edge == fe)
         assert(vtx.edge == f.edge)
         local nfaces = mesh:face_count()
         assert(nfaces == 3, "wrong number of faces: "..nfaces)

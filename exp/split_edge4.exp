@@ -4,13 +4,13 @@ v2 -> v5 [color=blue]
 v2 -> v3 [color=green]
 v3 -> v2 [color=blue]
 v3 -> v5
-v3 -> v4 [color=green]
-v4 -> v3 [color=blue]
-v4 -> v5
-v5 -> v3
+v5 -> v4
 v4 -> v1 [color=green]
 v1 -> v4 [color=blue]
 v1 -> v5 [color=green]
 v5 -> v1 [color=blue]
-v5 -> v4
+v5 -> v3
+v3 -> v4 [color=green]
+v4 -> v3 [color=blue]
+v4 -> v5
 }
