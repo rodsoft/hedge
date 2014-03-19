@@ -108,6 +108,10 @@ end
 
 function Edge:check(check_opp)
     assert(self.id ~= nil, "edge must have an id")
+    assert(self.opp ~= nil, "edge must have an opposite edge")
+    assert(self.next ~= nil, "edge must have a next edge")
+    assert(self.prev ~= nil, "edge must have a prev edge")
+
     assert(self.next ~= self, "edge's next edge cannot be itself")
     assert(self.prev ~= self, "edge's prev edge cannot be itself")
 
