@@ -358,8 +358,10 @@ function Mesh:add_face(...)
 end
 
 -- adds a vertex inside the face, create n faces inside input n-sided face
-function Mesh:split_face(face, v)
+function Mesh:split_face(face, v, reuse_face)
     assert(self:get_vertex(v) == nil, "Must split face using a new vertex")
+
+    reuse_face = reuse_face == nil and true or reuse_face
 
     v = self:add_vertex(v)
 
@@ -369,9 +371,11 @@ function Mesh:split_face(face, v)
         edges[#edges+1] = e
     end
 
+    local orig_face = face
+
     -- add new edges
     for _,e in ipairs(edges) do
-        if e ~= face.edge then
+        if not reuse_face or e ~= face.edge then
             face = self:create_face()
             face.edge = e
         end
@@ -414,11 +418,17 @@ function Mesh:split_face(face, v)
         pe = e
     end
 
+    if not reuse_face then
+        self:remove_face(orig_face)
+    end
+
     return v
 end
 
-function Mesh:split_edge(edge, v)
+function Mesh:split_edge(edge, v, reuse_face)
     assert(self:get_vertex(v) == nil, "Must split edge using a new vertex")
+
+    reuse_face = reuse_face == nil and true or reuse_face
 
     v = self:add_vertex(v)
 
@@ -454,11 +464,18 @@ function Mesh:split_edge(edge, v)
     edge.prev.opp = edge.opp.next
 
     function split_face(edge)
+        local orig_face = edge.face
+
         local begin_inner_edge = edge.next.next
         local end_inner_edge = edge.prev.prev
 
         -- process first face (it already has 2 edges, one from
         -- split (original edge), other from original face (edge.next)
+        if not reuse_face then
+            edge.face = self:create_face()
+            edge.face.edge = edge
+            edge.next.face = edge.face
+        end
 
         edge.next.next = Edge:new{vtx = edge.next.next.vtx,
                                   face = edge.face,
@@ -473,6 +490,10 @@ function Mesh:split_edge(edge, v)
         self:add_edge(edge)
         self:add_edge(edge.next)
         self:add_edge(edge.next.next)
+
+        if not reuse_face then
+            self:remove_face(orig_face)
+        end
 
         -- process new inner faces
         local last_edge = edge.next
@@ -798,7 +819,16 @@ function test(c, out)
         mesh:add_face(7,3,2)
     elseif c == "split_face" then
         local f = mesh:add_face(1,2,3)
-        mesh:split_face(f,4)
+        local vtx = mesh:split_face(f,4)
+        assert(vtx.edge.face == f)
+        local nfaces = mesh:face_count()
+        assert(nfaces == 3, "wrong number of faces: "..nfaces)
+    elseif c == "split_face_new_faces" then
+        local f = mesh:add_face(1,2,3)
+        local vtx = mesh:split_face(f,4, false)
+        for e in vtx:out_edges() do
+            assert(e.face ~= f)
+        end
         local nfaces = mesh:face_count()
         assert(nfaces == 3, "wrong number of faces: "..nfaces)
     elseif c == "split_edge3" then
@@ -808,7 +838,16 @@ function test(c, out)
         assert(nfaces == 2, "wrong number of faces: "..nfaces)
     elseif c == "split_edge4" then
         local f = mesh:add_face(1,2,3,4)
-        mesh:split_edge(f.edge,5)
+        local vtx = mesh:split_edge(f.edge,5)
+        assert(vtx.edge == f.edge)
+        local nfaces = mesh:face_count()
+        assert(nfaces == 3, "wrong number of faces: "..nfaces)
+    elseif c == "split_edge_new_faces4" then
+        local f = mesh:add_face(1,2,3,4)
+        local vtx = mesh:split_edge(f.edge,5,false)
+        for e in vtx:out_edges() do
+            assert(e.face ~= f)
+        end
         local nfaces = mesh:face_count()
         assert(nfaces == 3, "wrong number of faces: "..nfaces)
     elseif c == "split_edge_mid3" then
