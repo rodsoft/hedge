@@ -39,7 +39,7 @@ function Vertex:__eq(v)
 end
 
 function Vertex:__tostring()
-    return "Vertex #"..self.id
+    return "Vertex #"..tostring(self.id)
 end
 
 function is_vertex(v)
@@ -204,6 +204,7 @@ function Mesh:get_vertex(id)
 end
 
 function Mesh:add_vertex(id)
+    assert(id ~= nil)
     local vtx = Vertex:new{id = id}
 
     if type(id) == "number" then
