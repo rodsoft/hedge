@@ -47,6 +47,7 @@ function is_vertex(v)
 end
 
 function Vertex:check()
+    assert(self.edge ~= nil, "vertex must have an edge")
     assert(self.edge.vtx == self, "Bad edge <-> vtx link")
 end
 
@@ -181,6 +182,8 @@ function Face:edges()
 end
 
 function Face:check()
+    assert(self.edge ~= nil, "face must have an edge")
+
     for e in self:edges() do
         e:check()
         assert(e.face == nil or e.face == self, tostring(e)..": bad edge face, "..tostring(self).." != "..tostring(e.face))
@@ -375,6 +378,109 @@ function Mesh:add_face(...)
     return face
 end
 
+-- split face into face A (prev.face==A) and B (will be created)
+function Mesh:add_edge(v1, v2, prev, next, reuse_face)
+    reuse_face = reuse_face == nil and true or reuse_face
+
+    v1 = self:get_vertex(v1)
+    assert(v1, "vertex 1 must belong to a face")
+
+    v2 = self:get_vertex(v2)
+    assert(v2, "vertex 2 must belong to a face")
+
+    assert(v1 ~= v2, "vertices must be different")
+
+    -- called as add_edge(v1,v2,prev,reuse_face) ?
+    if type(next) == "boolean" then
+        reuse_face = next
+        next = nil
+    end
+
+    if next == nil then
+        next = prev
+        while next.vtx ~= v2 do
+            next = next.prev
+        end
+    end
+
+    assert(prev.next.vtx == v1, "invalid prev")
+    assert(next.vtx == v2, "invalid next")
+
+    assert(prev.face == next.face, "next and prev must belong to the same face")
+    assert(prev.face ~= nil, "prev and next cannot be border edges")
+
+    local face
+    local old_face
+
+    if not reuse_face then
+        old_face = prev.face
+        face = self:create_face()
+        -- update edge faces with new face
+        local e = next
+        repeat
+            e.face = face
+            e = e.next
+        until e == prev
+        prev.face = face
+    else
+        face = prev.face
+    end
+
+    local opp_prev = next.prev
+    local opp_next = prev.next
+
+    local ne = Edge:new{vtx = v1,
+                        face = face,
+                        prev = prev,
+                        next = next}
+    self:_add_edge(ne)
+    ne.prev.next = ne
+    ne.next.prev = ne
+
+    if v1.edge == nil then
+        v1.edge = ne
+    end
+
+    assert(prev.face == ne.face)
+    assert(next.face == ne.face)
+
+    if face.edge == nil then
+        face.edge = ne
+    end
+
+    ne.opp = Edge:new{vtx = v2,
+                      face = self:create_face(),
+                      prev = opp_prev,
+                      next = opp_next,
+                      opp = ne}
+    self:_add_edge(ne.opp)
+    opp_next.prev = ne.opp
+    opp_prev.next = ne.opp
+
+    ne.opp.face.edge = ne.opp
+
+    if v2.edge == nil then
+        v2.edge = ne.opp
+    end
+
+    -- update edge faces with new face
+    local e = opp_next
+    repeat
+        -- if the face A edge was in face B, set it to an edge of face A
+        if face.edge == e then
+            face.edge = ne
+        end
+        e.face = ne.opp.face
+        e = e.next
+    until e == ne.opp
+
+    if old_face ~= nil then
+        self:remove_face(old_face)
+    end
+
+    return ne
+end
+
 -- adds a vertex inside the face, create n faces inside input n-sided face
 function Mesh:split_face(face, v, reuse_face)
     assert(self:get_vertex(v) == nil, "Must split face using a new vertex")
@@ -441,6 +547,18 @@ function Mesh:split_face(face, v, reuse_face)
     end
 
     return v
+end
+
+-- triangulate edge.face creating a fan around edge.vtx
+function Mesh:triangulate(edge, reuse_face)
+    local v = edge.vtx
+    local prev_edge = edge.prev.prev.prev
+    local next_edge = edge
+    while prev_edge ~= next_edge do
+        local e = self:add_edge(prev_edge.next.vtx, v,
+                                prev_edge, next_edge, reuse_face)
+        prev_edge = prev_edge.prev
+    end
 end
 
 function Mesh:split_edge(edge, v, reuse_face)
@@ -852,6 +970,114 @@ function test(c, out)
         mesh:add_face(5,6,2)
         mesh:add_face(6,7,2)
         mesh:add_face(7,3,2)
+    elseif c == 'triangulate3' then
+        local f = mesh:add_face(1,2,3)
+        -- should be identity
+        local e = f.edge
+        mesh:triangulate(e)
+        assert(f.edge == e)
+        assert(e.face == f)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 1, "wrong number of faces: "..nfaces)
+        assert(nedges == 6, "wrong number of edges: "..nedges)
+        assert(nvertices == 3, "wrong number of vertices: "..nvertices)
+    elseif c == 'triangulate4' then
+        local f = mesh:add_face(1,2,3,4)
+        local e = f.edge
+        mesh:triangulate(e)
+        assert(f.edge == e)
+        assert(e.face == f)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 2, "wrong number of faces: "..nfaces)
+        assert(nedges == 10, "wrong number of edges: "..nedges)
+        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
+    elseif c == 'triangulate5' then
+        local f = mesh:add_face(1,2,3,4,5)
+        local e = f.edge
+        mesh:triangulate(e)
+        assert(f.edge == e)
+        assert(e.face == f)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 3, "wrong number of faces: "..nfaces)
+        assert(nedges == 14, "wrong number of edges: "..nedges)
+        assert(nvertices == 5, "wrong number of vertices: "..nvertices)
+    elseif c == 'triangulate5_newface' then
+        local f = mesh:add_face(1,2,3,4,5)
+        local e = f.edge
+        mesh:triangulate(e,false)
+        assert(e.face ~= f)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 3, "wrong number of faces: "..nfaces)
+        assert(nedges == 14, "wrong number of edges: "..nedges)
+        assert(nvertices == 5, "wrong number of vertices: "..nvertices)
+
+    elseif c == "add_edge_prev_next" then
+        local vtx = mesh:add_face(1,2,3,4)
+        local face = vtx.edge.face
+        local e = mesh:add_edge(1,3,vtx.edge.prev,vtx.edge.prev.prev)
+        e:check()
+        assert(e.face == face)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 2, "wrong number of faces: "..nfaces)
+        assert(nedges == 10, "wrong number of edges: "..nedges)
+        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
+
+    elseif c == "add_edge_prev_next_newfaces" then
+        local vtx = mesh:add_face(1,2,3,4)
+        local face = vtx.edge.face
+        local e = mesh:add_edge(1,3,vtx.edge.prev,vtx.edge.prev.prev, false)
+        e:check()
+        assert(e.face ~= face)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 2, "wrong number of faces: "..nfaces)
+        assert(nedges == 10, "wrong number of edges: "..nedges)
+        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
+
+    elseif c == "add_edge_prev" then
+        local vtx = mesh:add_face(1,2,3,4)
+        local face = vtx.edge.face
+        local e = mesh:add_edge(1,3,vtx.edge.prev)
+        e:check()
+        assert(e.face == face)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 2, "wrong number of faces: "..nfaces)
+        assert(nedges == 10, "wrong number of edges: "..nedges)
+        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
+
+    elseif c == "add_edge_prev_newfaces" then
+        local vtx = mesh:add_face(1,2,3,4)
+        local face = vtx.edge.face
+        local e = mesh:add_edge(1,3,vtx.edge.prev, false)
+        e:check()
+        assert(e.face ~= face)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 2, "wrong number of faces: "..nfaces)
+        assert(nedges == 10, "wrong number of edges: "..nedges)
+        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
     elseif c == "split_face" then
         local f = mesh:add_face(1,2,3)
         local vtx = mesh:split_face(f,4)
