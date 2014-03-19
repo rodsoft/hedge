@@ -1,6 +1,6 @@
 TESTS = case1 case2 case3 case4 case5 case6 case7 case8 \
 	     triangulate3 triangulate4 triangulate5 triangulate5_newface \
-	     remove_edge \
+	     remove_edge remove_border_edge remove_faceless_edge\
 	     add_edge_prev_next add_edge_prev \
 	     add_edge_prev_next_newfaces add_edge_prev_newfaces \
 	     split_face \
