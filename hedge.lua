@@ -481,6 +481,44 @@ function Mesh:add_edge(v1, v2, prev, next, reuse_face)
     return ne
 end
 
+function Mesh:remove_edge(edge)
+    assert(edge.face ~= nil and edge.opp.face ~= nil,
+           "can't remove a border edge")
+
+    -- fix vertex edges
+    if edge.vtx.edge == edge then
+        edge.vtx.edge = edge.opp.next
+    end
+
+    if edge.opp.vtx.edge == edge.opp then
+        edge.opp.vtx.edge = edge.next
+    end
+
+    -- remove edge.opp.face
+    self:remove_face(edge.opp.face)
+
+    local e = edge.opp.next
+    while e ~= edge.opp do
+        e.face = edge.face
+        e = e.next
+    end
+
+    -- fix face edge
+    if edge.face.edge == edge then
+        edge.face.edge = edge.next
+    end
+
+    self:_remove_edge(edge)
+    self:_remove_edge(edge.opp)
+
+    -- fix edge links
+    edge.next.prev = edge.opp.prev
+    edge.opp.prev.next = edge.next
+
+    edge.prev.next = edge.opp.next
+    edge.opp.next.prev = edge.prev
+end
+
 -- adds a vertex inside the face, create n faces inside input n-sided face
 function Mesh:split_face(face, v, reuse_face)
     assert(self:get_vertex(v) == nil, "Must split face using a new vertex")
@@ -773,30 +811,35 @@ function Mesh:output_dot(out)
         return tostring(v):gsub('-','_')
     end
 
-    for _,f in pairs(self.faces) do
-        for e in f:edges() do
-            if e.next ~= nil then
-                if e.vtx.edge == e then
-                    out:write("v",conv(e.vtx.id)," -> v",conv(e.next.vtx.id)," [color=green]\n")
-                else
-                    out:write("v",conv(e.vtx.id)," -> v",conv(e.next.vtx.id),"\n")
-                end
+    -- we must guarantee output order, so sort edges on edge.id
+    local sorted_edges = {}
+    for _,e in pairs(self.edges) do
+        sorted_edges[#sorted_edges+1] = e
+    end
+    table.sort(sorted_edges, function(a,b) return a.id < b.id end)
+
+    for i=1,#sorted_edges do
+        local e = sorted_edges[i]
+        local color
+
+        if e.face == nil then
+            if e.vtx.edge == e then
+                color = "yellow"
             else
-                out:write("v",conv(e.vtx.id)," -> BAD [color=red]\n")
+                color = "green"
             end
-
-            if e.opp ~= nil and e.opp.face == nil then
-                if e.opp.next ~= nil then
-                    if e.opp.vtx.edge == e.opp then
-                        out:write("v",conv(e.opp.vtx.id)," -> v",conv(e.opp.next.vtx.id)," [color=yellow]\n")
-                    else
-                        out:write("v",conv(e.opp.vtx.id)," -> v",conv(e.opp.next.vtx.id)," [color=blue]\n")
-                    end
-
-                else
-                    out:write("v",conv(e.opp.vtx.id)," -> BAD [color=red]\n")
-                end
+        else
+            if e.vtx.edge == e then
+                color = "blue"
+            else
+                color = nil
             end
+        end
+
+        if color ~= nil then
+            out:write("v",conv(e.vtx.id)," -> v",conv(e.next.vtx.id)," [color="..color.."]\n")
+        else
+            out:write("v",conv(e.vtx.id)," -> v",conv(e.next.vtx.id),"\n")
         end
     end
 
@@ -1060,6 +1103,17 @@ function test(c, out)
         local f = mesh:add_face(1,2,3)
         local did = mesh:flip_edge(f.edge,1)
         assert(not did)
+    elseif c== "remove_edge" then
+        local f = mesh:add_face(1,2,3)
+        mesh:add_face(2,1,4)
+        mesh:remove_edge(f.edge)
+
+        local nfaces = mesh:face_count()
+        local nedges = mesh:edge_count()
+        local nvertices = mesh:vertex_count()
+        assert(nfaces == 1, "wrong number of faces: "..nfaces)
+        assert(nedges == 8, "wrong number of edges: "..nedges)
+        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
     elseif c == "remove_inner_vertex" then
         local f = mesh:add_face(1,2,3,4)
         local vtx = mesh:split_face(f, 5)

@@ -1,12 +1,12 @@
 digraph mesh {
-v4 -> v1
-v1 -> v2
-v2 -> v1 [color=yellow]
-v2 -> v4
-v4 -> v2 [color=yellow]
 v1 -> v4
-v4 -> v3
+v4 -> v1
+v4 -> v2 [color=yellow]
+v1 -> v2
+v2 -> v4
+v2 -> v1 [color=yellow]
 v3 -> v4 [color=yellow]
-v3 -> v1
 v1 -> v3 [color=yellow]
+v4 -> v3
+v3 -> v1
 }
