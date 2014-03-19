@@ -224,7 +224,7 @@ function Mesh:add_vertex(id)
     return vtx
 end
 
-function Mesh:add_edge(e)
+function Mesh:_add_edge(e)
     assert(e.vtx ~= nil, "edge must have a valid src vertex")
     assert(e.next.vtx ~= nil, "edge must have a valid target vertex")
     assert(e.vtx ~= e.next.vtx, "singular edges not allowed")
@@ -303,7 +303,7 @@ function Mesh:add_face(...)
         e1.next = e2
         e2.prev = e1
 
-        self:add_edge(e1)
+        self:_add_edge(e1)
     end
 
     -- create opposite edges
@@ -325,7 +325,7 @@ function Mesh:add_face(...)
             edge.opp.prev = edge.next.opp
             edge.opp.next = edge.prev.opp
 
-            self:add_edge(edge.opp)
+            self:_add_edge(edge.opp)
         end
     end
 
@@ -345,7 +345,7 @@ function Mesh:add_face(...)
                 edge.opp.prev = bedge
                 bedge.next = edge.opp
 
-                self:add_edge(bedge)
+                self:_add_edge(bedge)
             end
 
             -- wrong next?
@@ -361,7 +361,7 @@ function Mesh:add_face(...)
                 edge.opp.next = bedge
                 bedge.prev = edge.opp
 
-                self:add_edge(edge.opp)
+                self:_add_edge(edge.opp)
             end
         end
     end
@@ -410,9 +410,9 @@ function Mesh:split_face(face, v, reuse_face)
         -- set edge #1's prev to edge #3
         e.prev = e.next.next
 
-        self:add_edge(e)
-        self:add_edge(e.next)
-        self:add_edge(e.next.next)
+        self:_add_edge(e)
+        self:_add_edge(e.next)
+        self:_add_edge(e.next.next)
     end
 
     -- fix opp edges
@@ -499,9 +499,9 @@ function Mesh:split_edge(edge, v, reuse_face)
         -- is the same on both sides
         edge.face.edge = edge
 
-        self:add_edge(edge)
-        self:add_edge(edge.next)
-        self:add_edge(edge.next.next)
+        self:_add_edge(edge)
+        self:_add_edge(edge.next)
+        self:_add_edge(edge.next.next)
 
         if not reuse_face then
             self:remove_face(orig_face)
@@ -533,9 +533,9 @@ function Mesh:split_edge(edge, v, reuse_face)
             edge.prev.opp = last_edge.next
             last_edge.next.opp = edge.prev
 
-            self:add_edge(edge)
-            self:add_edge(edge.next)
-            self:add_edge(edge.next.next)
+            self:_add_edge(edge)
+            self:_add_edge(edge.next)
+            self:_add_edge(edge.next.next)
 
             last_edge = edge
             edge = next_edge
@@ -558,22 +558,22 @@ function Mesh:split_edge(edge, v, reuse_face)
         edge.next.next = edge.prev
         last_edge.next.opp = edge.prev
 
-        self:add_edge(edge)
-        self:add_edge(edge.next)
-        self:add_edge(edge.next.next)
+        self:_add_edge(edge)
+        self:_add_edge(edge.next)
+        self:_add_edge(edge.next.next)
     end
 
     -- split one side
     if edge.face ~= nil then
         split_face(edge)
     else
-        self:add_edge(edge.prev)
+        self:_add_edge(edge.prev)
     end
     -- split the other
     if edge.opp.next.face ~= nil then
         split_face(edge.opp.next)
     else
-        self:add_edge(edge.opp.next)
+        self:_add_edge(edge.opp.next)
     end
 
     return v
@@ -689,7 +689,7 @@ function Mesh:remove_vertex(vtx)
         -- vertex edge points to the edge that will not be removed
         e.next.vtx.edge = e.next
 
-        self:add_edge(e.opp.prev)
+        self:_add_edge(e.opp.prev)
 
         e.next.face = face
     end
