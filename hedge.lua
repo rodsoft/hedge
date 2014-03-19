@@ -521,12 +521,12 @@ function Mesh:split_edge(edge, v, reuse_face)
             edge.prev.opp = last_edge.next
             last_edge.next.opp = edge.prev
 
-            last_edge = edge
-            edge = next_edge
-
             self:add_edge(edge)
             self:add_edge(edge.next)
             self:add_edge(edge.next.next)
+
+            last_edge = edge
+            edge = next_edge
         end
 
         -- process last face (it already has 2 edges, one from split
@@ -554,10 +554,14 @@ function Mesh:split_edge(edge, v, reuse_face)
     -- split one side
     if edge.face ~= nil then
         split_face(edge)
+    else
+        self:add_edge(edge.prev)
     end
     -- split the other
     if edge.opp.next.face ~= nil then
         split_face(edge.opp.next)
+    else
+        self:add_edge(edge.opp.next)
     end
 
     return v
