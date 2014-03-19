@@ -256,6 +256,9 @@ function Mesh:create_face()
     self.faces[face.id] = face
     return face
 end
+function Mesh:remove_face(f)
+    self.faces[f.id] = nil
+end
 
 function Mesh:add_face(...)
     local ids = {...}
@@ -637,7 +640,7 @@ function Mesh:remove_vertex(vtx)
                 e.next.vtx.edge.face = face
             end
 
-            self.faces[e.face.id] = nil
+            self:remove_face(e.face)
         end
 
         self:remove_edge(e.opp.prev)
