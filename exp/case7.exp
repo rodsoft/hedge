@@ -1,32 +1,32 @@
 digraph mesh {
-v1 -> v2
-v2 -> v3
-v3 -> v1
+v1 -> v2 [color=green]
+v2 -> v3 [color=green]
+v3 -> v1 [color=green]
 v1 -> v3 [color=blue]
 v2 -> v4
-v4 -> v5
+v4 -> v5 [color=green]
 v5 -> v4 [color=blue]
-v5 -> v2
+v5 -> v2 [color=green]
 v3 -> v5
 v5 -> v6
 v6 -> v5 [color=blue]
-v6 -> v3
+v6 -> v3 [color=green]
 v3 -> v6 [color=blue]
 v5 -> v3
 v3 -> v2
 v2 -> v5
-v10 -> v7
+v10 -> v7 [color=green]
 v7 -> v10 [color=blue]
-v7 -> v1
+v7 -> v1 [color=green]
 v1 -> v10
 v10 -> v1 [color=blue]
 v7 -> v8
 v8 -> v7 [color=blue]
-v8 -> v2
+v8 -> v2 [color=green]
 v2 -> v7
 v8 -> v9
 v9 -> v8 [color=blue]
-v9 -> v4
+v9 -> v4 [color=green]
 v4 -> v9 [color=blue]
 v4 -> v8
 v2 -> v1

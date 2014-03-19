@@ -1,8 +1,8 @@
 digraph mesh {
-v1 -> v2
-v2 -> v1 [color=blue]
+v1 -> v2 [color=green]
+v2 -> v1 [color=yellow]
 v2 -> v3
-v3 -> v2 [color=blue]
+v3 -> v2 [color=yellow]
 v3 -> v1
 v1 -> v3 [color=blue]
 }

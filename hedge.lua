@@ -741,11 +741,24 @@ function Mesh:output_dot(out)
 
     for _,f in pairs(self.faces) do
         for e in f:edges() do
-            out:write("v",conv(e.vtx.id)," -> v",conv(e.next.vtx.id),"\n")
+            if e.next ~= nil then
+                if e.vtx.edge == e then
+                    out:write("v",conv(e.vtx.id)," -> v",conv(e.next.vtx.id)," [color=green]\n")
+                else
+                    out:write("v",conv(e.vtx.id)," -> v",conv(e.next.vtx.id),"\n")
+                end
+            else
+                out:write("v",conv(e.vtx.id)," -> BAD [color=red]\n")
+            end
 
             if e.opp ~= nil and e.opp.face == nil then
                 if e.opp.next ~= nil then
-                    out:write("v",conv(e.opp.vtx.id)," -> v",conv(e.opp.next.vtx.id)," [color=blue]\n")
+                    if e.opp.vtx.edge == e.opp then
+                        out:write("v",conv(e.opp.vtx.id)," -> v",conv(e.opp.next.vtx.id)," [color=yellow]\n")
+                    else
+                        out:write("v",conv(e.opp.vtx.id)," -> v",conv(e.opp.next.vtx.id)," [color=blue]\n")
+                    end
+
                 else
                     out:write("v",conv(e.opp.vtx.id)," -> BAD [color=red]\n")
                 end
