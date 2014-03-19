@@ -246,7 +246,7 @@ function Mesh:_add_edge(e)
     self.edges[e:key()] = e
     return e
 end
-function Mesh:remove_edge(e)
+function Mesh:_remove_edge(e)
     self.edges[e:key()] = nil
 end
 
@@ -329,7 +329,7 @@ function Mesh:add_face(...)
     -- create opposite edges links
     for id,edge in ipairs(edges) do
         if edge.opp.face == nil then
-            self:remove_edge(edge.opp)
+            self:_remove_edge(edge.opp)
 
             edge.opp.prev = edge.next.opp
             edge.opp.next = edge.prev.opp
@@ -349,7 +349,7 @@ function Mesh:add_face(...)
                     bedge = bedge.next.opp
                 end
 
-                self:remove_edge(bedge)
+                self:_remove_edge(bedge)
 
                 edge.opp.prev = bedge
                 bedge.next = edge.opp
@@ -365,7 +365,7 @@ function Mesh:add_face(...)
                     bedge = bedge.prev.opp
                 end
 
-                self:remove_edge(edge.opp)
+                self:_remove_edge(edge.opp)
 
                 edge.opp.next = bedge
                 bedge.prev = edge.opp
@@ -506,7 +506,7 @@ function Mesh:split_face(face, v, reuse_face)
 
         -- reuse original edge #1 (v1->v2)
         e.face = face
-        self:remove_edge(e)
+        self:_remove_edge(e)
 
         -- add edge #2 (v2->v)
         e.next = Edge:new({vtx = e.next.vtx, face = face, prev = e})
@@ -691,8 +691,8 @@ function Mesh:remove_vertex(vtx)
     local edges = {}
     for e in vtx:out_edges() do
         -- remove edges now since their vertices weren't changed yet
-        self:remove_edge(e)
-        self:remove_edge(e.opp)
+        self:_remove_edge(e)
+        self:_remove_edge(e.opp)
 
         edges[#edges+1] = e
 
@@ -720,7 +720,7 @@ function Mesh:remove_vertex(vtx)
             self:remove_face(e.face)
         end
 
-        self:remove_edge(e.opp.prev)
+        self:_remove_edge(e.opp.prev)
 
         -- fix edge links
         e.next.prev = e.opp.prev
