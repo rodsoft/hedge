@@ -542,7 +542,7 @@ function Mesh:remove_edge(edge)
     end
 
     -- remove edge.opp.face
-    if edge.opp.face ~= nil then
+    if edge.opp.face ~= nil and edge.face ~= edge.opp.face then
         self:remove_face(edge.opp.face)
     end
 
@@ -562,6 +562,10 @@ function Mesh:remove_edge(edge)
 
     if edge.vtx.edge == edge or edge.vtx.edge == edge.opp then
         self.vertices[edge.vtx.id] = nil
+    end
+
+    if edge.opp.vtx.edge == edge or edge.opp.vtx.edge == edge.opp then
+        self.vertices[edge.opp.vtx.id] = nil
     end
 
     -- fix edge links
@@ -1198,12 +1202,20 @@ function test(c, out)
         assert(nfaces == 1, "wrong number of faces: "..nfaces)
         assert(nedges == 8, "wrong number of edges: "..nedges)
         assert(nvertices == 4, "wrong number of vertices: "..nvertices)
-    elseif c== "remove_faceless_edge" then
+    elseif c== "remove_disconnected_edge" then
+        local e = mesh:add_edge(1,2)
+        mesh:remove_edge(e)
+
+        local nfaces = mesh:face_count()
+        local nedges = mesh:edge_count()
+        local nvertices = mesh:vertex_count()
+        assert(nfaces == 0, "wrong number of faces: "..nfaces)
+        assert(nedges == 0, "wrong number of edges: "..nedges)
+        assert(nvertices == 0, "wrong number of vertices: "..nvertices)
+    elseif c== "remove_semi_connected_edge" then
         local f = mesh:add_face(1,2,3)
-        mesh:add_face(2,1,4)
-        mesh:remove_edge(f.edge.prev)
-        assert(f.edge.next.face == nil and f.edge.next.opp.face == nil)
-        mesh:remove_edge(f.edge.next)
+        local e = mesh:add_edge(2, 4, f.edge)
+        mesh:remove_edge(e)
 
         local nfaces = mesh:face_count()
         local nedges = mesh:edge_count()
