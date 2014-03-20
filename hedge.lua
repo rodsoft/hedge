@@ -271,6 +271,10 @@ function Mesh:get_edge(v1, v2)
     return self.edges[sv1..'>'..sv2]
 end
 
+function Mesh:edge_exists(e)
+    return self.edges[e:key()] ~= nil
+end
+
 function Mesh:create_face()
     local face = Face:new{id = self.idnewface}
     self.idnewface = self.idnewface+1
