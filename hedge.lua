@@ -532,6 +532,10 @@ function Mesh:add_edge(v1, v2, prev, next, reuse_face)
 end
 
 function Mesh:remove_edge(edge)
+    if not self:edge_exists(edge) then
+        return false
+    end
+
     if edge.opp.face == nil then
         edge = edge.opp
     end
@@ -578,6 +582,8 @@ function Mesh:remove_edge(edge)
 
     edge.prev.next = edge.opp.next
     edge.opp.next.prev = edge.prev
+
+    return true
 end
 
 -- adds a vertex inside the face, create n faces inside input n-sided face
@@ -1432,6 +1438,35 @@ function bench6(N)
     mesh:check()
 end
 
+-- remove edge
+function bench7(N)
+    N = N or 10000
+    print("Remove edge",N)
+
+    local mesh = Mesh:new()
+
+    local face = mesh:add_face(1,2,3)
+
+    for i=4,N do
+        mesh:split_face(face,i)
+    end
+
+    local edges = {}
+    for _,e in pairs(mesh.edges) do
+        edges[#edges+1] = e
+    end
+
+    local clk = os.clock()
+
+    for i=1,#edges do
+        mesh:remove_edge(edges[i])
+    end
+
+    stats(clk, mesh)
+    mesh:output_dot(io.open("saida.dot","w"))
+    mesh:check()
+end
+
 function bench_all(N)
     bench1(N)
     bench2(N)
@@ -1439,6 +1474,7 @@ function bench_all(N)
     bench4(N)
     bench5(N)
     bench6(N)
+    bench7(N)
 end
 
 return M
