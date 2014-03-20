@@ -590,66 +590,48 @@ end
 function Mesh:split_face(face, v, reuse_face)
     assert(self:get_vertex(v) == nil, "Must split face using a new vertex")
 
-    reuse_face = reuse_face == nil and true or reuse_face
-
     v = self:add_vertex(v)
 
-    -- save input face edges
-    local edges = {}
-    for e in face:edges() do
-        edges[#edges+1] = e
-    end
+    local nf = self:create_face()
+    nf.edge = face.edge
+    nf.edge.face = nf
 
-    local orig_face = face
+    local ne1 = Edge:new{vtx = nf.edge.next.vtx,
+                         face = nf,
+                         prev = nf.edge}
+    local ne2 = Edge:new{vtx = v,
+                         face = nf,
+                         prev = ne1,
+                         next = nf.edge}
+    ne1.next = ne2
 
-    -- add new edges
-    for _,e in ipairs(edges) do
-        if not reuse_face or e ~= face.edge then
-            face = self:create_face()
-            face.edge = e
-        end
+    ne1.opp = Edge:new{vtx = v,
+                       face = face,
+                       next = nf.edge.next,
+                       opp = ne1}
+    ne2.opp = Edge:new{vtx = nf.edge.vtx,
+                       face = face,
+                       next = ne1.opp,
+                       prev = nf.edge.prev,
+                       opp = ne2}
+    ne1.opp.prev = ne2.opp
 
-        -- reuse original edge #1 (v1->v2)
-        e.face = face
-        self:_remove_edge(e)
+    -- fix edge links
+    nf.edge.prev.next = ne2.opp
+    nf.edge.next.prev = ne1.opp
+    nf.edge.next = ne1
+    nf.edge.prev = ne2
 
-        -- add edge #2 (v2->v)
-        e.next = Edge:new({vtx = e.next.vtx, face = face, prev = e})
+    face.edge = ne1.opp
 
-        -- add edge #3 (v->v3)
-        e.next.next = Edge:new({vtx = v, face = face,
-                                next = e, prev = e.next})
+    v.edge = face.edge
 
-        if v.edge == nil then
-            v.edge = e.next.next
-        end
+    self:_add_edge(ne1)
+    self:_add_edge(ne2)
+    self:_add_edge(ne1.opp)
+    self:_add_edge(ne2.opp)
 
-        -- set edge #1's prev to edge #3
-        e.prev = e.next.next
-
-        self:_add_edge(e)
-        self:_add_edge(e.next)
-        self:_add_edge(e.next.next)
-    end
-
-    -- fix opp edges
-    local pe = edges[#edges]
-
-    for i = 1,#edges do
-        local ne = edges[i%#edges+1]
-        local e = edges[i]
-
-        e.next.opp = ne.prev
-        assert(e.next.opp.face == ne.prev.face)
-        e.prev.opp = pe.next
-        assert(e.prev.opp.face == pe.next.face)
-
-        pe = e
-    end
-
-    if not reuse_face then
-        self:remove_face(orig_face)
-    end
+    self:triangulate(face.edge, reuse_face)
 
     return v
 end
@@ -790,53 +772,14 @@ function Mesh:remove_vertex(vtx)
         return false
     end
 
-    local is_border_vertex = false
-
     -- save vertex edges before changing them
     local edges = {}
     for e in vtx:out_edges() do
-        -- remove edges now since their vertices weren't changed yet
-        self:_remove_edge(e)
-        self:_remove_edge(e.opp)
-
         edges[#edges+1] = e
-
-        if e.face == nil then
-            is_border_vertex = true
-        end
     end
 
-    -- if it's a border vertex, all faces touching the vertex will be removed
-    local face = not is_border_vertex and edges[1].face or nil
-
-    -- remove edges around vertex
-    for i = 1,#edges do
-        local e = edges[i]
-
-        -- not vertex face?
-        -- remove the face (it if exists, i.e., edge is not a border)
-        if e.face ~= face and e.face ~=nil then
-            -- vertex points to the face that will be removed?
-            if e.next.vtx.edge.face == e.face then
-                -- make it point to the face that will remain
-                e.next.vtx.edge.face = face
-            end
-
-            self:remove_face(e.face)
-        end
-
-        self:_remove_edge(e.opp.prev)
-
-        -- fix edge links
-        e.next.prev = e.opp.prev
-        e.opp.prev.next = e.next
-
-        -- vertex edge points to the edge that will not be removed
-        e.next.vtx.edge = e.next
-
-        self:_add_edge(e.opp.prev)
-
-        e.next.face = face
+    for i=1,#edges do
+        self:remove_edge(edges[i])
     end
 
     -- remove vertex from our list of vertices
@@ -1243,9 +1186,9 @@ function test(c, out)
         local nfaces = mesh:face_count()
         local nedges = mesh:edge_count()
         local nvertices = mesh:vertex_count()
-        --assert(nfaces == 1, "wrong number of faces: "..nfaces)
-        --assert(nedges == 8, "wrong number of edges: "..nedges)
-        --assert(nvertices == 4, "wrong number of vertices: "..nvertices)
+        assert(nfaces == 1, "wrong number of faces: "..nfaces)
+        assert(nedges == 8, "wrong number of edges: "..nedges)
+        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
     elseif c == "remove_border_vertex1" then
         mesh:add_face(1,2,3)
         local f = mesh:add_face(3,2,4)
@@ -1258,40 +1201,6 @@ function test(c, out)
         assert(nfaces == 1, "wrong number of faces: "..nfaces)
         assert(nedges == 6, "wrong number of edges: "..nedges)
         assert(nvertices == 3, "wrong number of vertices: "..nvertices)
-    elseif c == "remove_border_vertex2" then
-        mesh:add_face(4,-2,-1)
-        mesh:split_face(mesh.faces[1], 1)
-        mesh:split_face(mesh.faces[3], 2)
-        mesh:split_face(mesh.faces[1], 3)
-
-        mesh:check()
-
-        nfaces = mesh:face_count()
-        nedges = mesh:edge_count()
-        nvertices = mesh:vertex_count()
-        assert(nfaces == 7, "wrong number of faces: "..nfaces)
-        assert(nedges == 24, "wrong number of edges: "..nedges)
-        assert(nvertices == 6, "wrong number of vertices: "..nvertices)
-
-        mesh:remove_vertex(-1)
-        local nfaces = mesh:face_count()
-        local nedges = mesh:edge_count()
-        local nvertices = mesh:vertex_count()
-        assert(nfaces == 4, "wrong number of faces: "..nfaces)
-        assert(nedges == 16, "wrong number of edges: "..nedges)
-        assert(nvertices == 5, "wrong number of vertices: "..nvertices)
-
-        mesh:check()
-
-        mesh:remove_vertex(-2)
-        nfaces = mesh:face_count()
-        nedges = mesh:edge_count()
-        nvertices = mesh:vertex_count()
-        assert(nfaces == 2, "wrong number of faces: "..nfaces)
-        assert(nedges == 10, "wrong number of edges: "..nedges)
-        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
-
-        mesh:check()
     end
 
     mesh:check()
