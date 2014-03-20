@@ -1,0 +1,4 @@
+digraph mesh {
+v1 -> v2 [color=yellow]
+v2 -> v1 [color=yellow]
+}

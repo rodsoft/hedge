@@ -3,6 +3,7 @@ TESTS = case1 case2 case3 case4 case5 case6 case7 case8 \
 	     remove_edge remove_border_edge remove_faceless_edge\
 	     add_edge_prev_next add_edge_prev \
 	     add_edge_prev_next_newfaces add_edge_prev_newfaces \
+	     add_disconnected_edge add_semi_connected_edge \
 	     split_face \
 	     split_edge3 split_edge4 split_edge_mid3 split_edge_mid4 \
 	     split_edge_new_faces4 \

@@ -382,13 +382,59 @@ end
 function Mesh:add_edge(v1, v2, prev, next, reuse_face)
     reuse_face = reuse_face == nil and true or reuse_face
 
-    v1 = self:get_vertex(v1)
-    assert(v1, "vertex 1 must belong to a face")
-
-    v2 = self:get_vertex(v2)
-    assert(v2, "vertex 2 must belong to a face")
-
     assert(v1 ~= v2, "vertices must be different")
+
+    v1 = self:get_or_add_vertex(v1)
+    v2 = self:get_or_add_vertex(v2)
+
+    -- disconnected, faceless edge?
+    if v1.edge == nil and v2.edge == nil then
+        assert(prev == nil, "prev edges is useless when new edge is disconnected")
+        v1.edge = Edge:new{vtx = v1, face = nil}
+        v2.edge = Edge:new{vtx = v2,
+                           face = nil,
+                           prev = v1.edge,
+                           next = v1.edge,
+                           opp = v1.edge
+                       }
+        v1.edge.prev = v2.edge
+        v1.edge.next = v2.edge
+        v1.edge.opp = v2.edge
+
+        self:_add_edge(v1.edge)
+        self:_add_edge(v2.edge)
+
+        return v1.edge
+    -- semi disconnected edge?
+    elseif v1.edge == nil or v2.edge == nil then
+
+        local a,b = v1.edge ~= nil and v1,v2 or v2,v1
+        -- vertex a has an edge
+
+        assert(prev.next.vtx == a, "invalid prev")
+        
+        local orig_edge = a.edge
+
+        a.edge = Edge:new{vtx = a,
+                          face = prev.face,
+                          prev = prev}
+
+        b.edge = Edge:new{vtx = b,
+                           face = prev.face,
+                           prev = a.edge,
+                           next = prev.next,
+                           opp = a.edge
+                       }
+        a.edge.opp = b.edge
+        a.edge.next = b.edge
+
+        prev.next.prev = b.edge
+        prev.next = a.edge
+
+        self:_add_edge(a.edge)
+        self:_add_edge(b.edge)
+        return a.edge
+    end
 
     -- called as add_edge(v1,v2,prev,reuse_face) ?
     if type(next) == "boolean" then
@@ -1045,6 +1091,26 @@ function test(c, out)
         nvertices = mesh:vertex_count()
         assert(nfaces == 2, "wrong number of faces: "..nfaces)
         assert(nedges == 10, "wrong number of edges: "..nedges)
+        assert(nvertices == 4, "wrong number of vertices: "..nvertices)
+    elseif c == "add_disconnected_edge" then
+        local e = mesh:add_edge(1,2)
+        e:check()
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 0, "wrong number of faces: "..nfaces)
+        assert(nedges == 2, "wrong number of edges: "..nedges)
+        assert(nvertices == 2, "wrong number of vertices: "..nvertices)
+    elseif c == "add_semi_connected_edge" then
+        local f = mesh:add_face(1,2,3)
+        local e = mesh:add_edge(2, 4, f.edge)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 1, "wrong number of faces: "..nfaces)
+        assert(nedges == 8, "wrong number of edges: "..nedges)
         assert(nvertices == 4, "wrong number of vertices: "..nvertices)
     elseif c == "split_face" then
         local f = mesh:add_face(1,2,3)
