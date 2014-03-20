@@ -6,7 +6,7 @@ TESTS = case1 case2 case3 case4 case5 case6 case7 case8 \
 	     add_disconnected_edge add_semi_connected_edge \
 	     split_face \
 	     split_edge3 split_edge4 split_edge_mid3 split_edge_mid4 \
-	     flip_edge4 flip_edge5 double_flip_edge flip_border \
+	     flip_edge4 flip_edge5 double_flip_edge flip_border dont_flip \
 	     remove_inner_vertex remove_border_vertex1
 
 TESTS_COMP = $(addsuffix .comp,$(TESTS))

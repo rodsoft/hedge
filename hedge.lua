@@ -672,6 +672,14 @@ function Mesh:flip_edge(edge)
         return false
     end
 
+    -- if destination edge position has another edge, don't flip
+    if self:get_edge(edge.prev.vtx, edge.opp.prev.vtx) ~= nil then
+        return false
+    end
+
+    self:_remove_edge(edge)
+    self:_remove_edge(edge.opp)
+
     -- change vertices
 
     -- if vertex points to edge, make it point to another edge with
@@ -722,6 +730,9 @@ function Mesh:flip_edge(edge)
 
     edge.prev = edge_prev_prev
     edge.opp.prev = edge_opp_prev_prev
+
+    self:_add_edge(edge)
+    self:_add_edge(edge.opp)
 
     return true
 end
@@ -1024,19 +1035,25 @@ function test(c, out)
     elseif c == "flip_edge4" then
         mesh:add_face(1,2,3)
         local f = mesh:add_face(3,2,4)
-        mesh:flip_edge(f.edge,5)
+        mesh:flip_edge(f.edge)
     elseif c == "flip_edge5" then
         mesh:add_face(1,2,3,4)
         local f = mesh:add_face(2,1,5,6)
-        mesh:flip_edge(f.edge,7)
+        mesh:flip_edge(f.edge)
     elseif c == "double_flip_edge" then
         mesh:add_face(1,2,3)
         local f = mesh:add_face(3,2,4)
-        mesh:flip_edge(f.edge,5)
-        mesh:flip_edge(f.edge,5)
+        mesh:flip_edge(f.edge)
+        mesh:flip_edge(f.edge)
     elseif c == "flip_border" then
         local f = mesh:add_face(1,2,3)
-        local did = mesh:flip_edge(f.edge,1)
+        local did = mesh:flip_edge(f.edge)
+        assert(not did)
+    elseif c == "dont_flip" then
+        mesh:add_face(1,2,3)
+        local f = mesh:add_face(1,3,4)
+        mesh:split_edge(f.edge, 5)
+        local did = mesh:flip_edge(f.edge)
         assert(not did)
     elseif c== "remove_edge" then
         local f = mesh:add_face(1,2,3)
