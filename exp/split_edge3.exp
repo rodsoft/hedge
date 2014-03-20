@@ -7,6 +7,4 @@ v3 -> v2 [color=green]
 v1 -> v3 [color=green]
 v1 -> v4 [color=blue]
 v4 -> v1 [color=green]
-v3 -> v4
-v4 -> v3
 }

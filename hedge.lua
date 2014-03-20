@@ -663,19 +663,6 @@ function Mesh:split_edge(edge, v)
     edge.opp.opp = edge
     edge.prev.opp = edge.opp.next
 
-    -- then we create triangles on edge's face, linking the added vertex to
-    -- each vertex (minus 2)
-
-    if edge.face ~= nil then
-        self:triangulate(edge)
-    end
-
-    -- same thing on edge.opp.face
-
-    if edge.opp.face ~= nil then
-        self:triangulate(edge.opp.next)
-    end
-
     return v
 end
 
@@ -1013,7 +1000,7 @@ function test(c, out)
         local f = mesh:add_face(1,2,3)
         local vtx = mesh:split_edge(f.edge,4)
         local nfaces = mesh:face_count()
-        assert(nfaces == 2, "wrong number of faces: "..nfaces)
+        assert(nfaces == 1, "wrong number of faces: "..nfaces)
     elseif c == "split_edge4" then
         local f = mesh:add_face(1,2,3,4)
         local fe = f.edge
@@ -1021,19 +1008,19 @@ function test(c, out)
         assert(f.edge == fe)
         assert(vtx.edge == f.edge)
         local nfaces = mesh:face_count()
-        assert(nfaces == 3, "wrong number of faces: "..nfaces)
+        assert(nfaces == 1, "wrong number of faces: "..nfaces)
     elseif c == "split_edge_mid3" then
         mesh:add_face(1,2,3)
         local f = mesh:add_face(3,2,4)
         mesh:split_edge(f.edge,5)
         local nfaces = mesh:face_count()
-        assert(nfaces == 4, "wrong number of faces: "..nfaces)
+        assert(nfaces == 2, "wrong number of faces: "..nfaces)
     elseif c == "split_edge_mid4" then
         mesh:add_face(1,2,3,4)
         local f = mesh:add_face(2,1,5,6)
         mesh:split_edge(f.edge,7)
         local nfaces = mesh:face_count()
-        assert(nfaces == 6, "wrong number of faces: "..nfaces)
+        assert(nfaces == 2, "wrong number of faces: "..nfaces)
     elseif c == "flip_edge4" then
         mesh:add_face(1,2,3)
         local f = mesh:add_face(3,2,4)

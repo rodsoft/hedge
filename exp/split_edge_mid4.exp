@@ -15,12 +15,4 @@ v6 -> v5 [color=green]
 v2 -> v6 [color=green]
 v2 -> v7
 v7 -> v2
-v6 -> v7
-v7 -> v6
-v5 -> v7
-v7 -> v5
-v4 -> v7
-v7 -> v4
-v3 -> v7
-v7 -> v3
 }
