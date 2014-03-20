@@ -237,6 +237,7 @@ function Mesh:_add_edge(e)
     assert(e.vtx ~= nil, "edge must have a valid src vertex")
     assert(e.next.vtx ~= nil, "edge must have a valid target vertex")
     assert(e.vtx ~= e.next.vtx, "singular edges not allowed")
+    assert(self.edges[e:key()] == nil, "edge already exist")
 
     if e.id == nil then
         e.id = self.idnewedge
@@ -316,6 +317,7 @@ function Mesh:add_face(...)
         e1.next = e2
         e2.prev = e1
 
+        self:_remove_edge(e1)
         self:_add_edge(e1)
     end
 
