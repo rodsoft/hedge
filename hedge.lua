@@ -839,6 +839,10 @@ function Mesh:check()
     for _,f in pairs(self.faces) do
         f:check()
     end
+
+    for k,e in pairs(self.edges) do
+        assert(k == e:key(), "invalid key "..k.." for "..tostring(e))
+    end
 end
 
 -- TESTSUITE ------------------------------------------------------
