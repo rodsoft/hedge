@@ -22,7 +22,7 @@ _ENV = M
 
 local enable_trace = false
 
-function trace(...)
+local function trace(...)
     if enable_trace then
         for k,v in ipairs({...}) do
             if k > 1 then
