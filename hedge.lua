@@ -20,9 +20,9 @@ M.table = table
 
 _ENV = M
 
-local debug_mode = false
+debug_mode = false
 
-local enable_trace = false
+enable_trace = false
 
 local function trace(...)
     if enable_trace then
