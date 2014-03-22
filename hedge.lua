@@ -20,6 +20,8 @@ M.table = table
 
 _ENV = M
 
+local debug_mode = false
+
 local enable_trace = false
 
 local function trace(...)
@@ -134,8 +136,7 @@ function Edge:check(check_opp)
 
     assert(self.next.prev == self, tostring(self)..": bad edge forward link")
     assert(self.prev.next == self, tostring(self)..": bad edge backward link")
-    assert(self.opp.opp == self,
-        tostring(self)..": bad opposite edge link ("..tostring(self.opp.opp).." != "..tostring(self)..")")
+    assert(self.opp.opp == self, tostring(self)..": bad opposite edge link ("..tostring(self.opp.opp).." != "..tostring(self)..")")
 
     assert(self.face == self.next.face, tostring(self)..": adjacent edges must belong to the same face")
     assert(self.face == self.prev.face, tostring(self)..": adjacent edges must belong to the same face")
@@ -236,8 +237,10 @@ function Mesh:get_vertex(id)
 end
 
 function Mesh:add_vertex(id)
-    trace("add vertex #",id)
-    assert(id ~= nil)
+    if debug_mode then
+        trace("add vertex #",id)
+        assert(id ~= nil)
+    end
     local vtx = Vertex:new{id = id}
 
     if type(id) == "number" then
@@ -250,10 +253,12 @@ function Mesh:add_vertex(id)
 end
 
 function Mesh:_add_edge(e)
-    assert(e.vtx ~= nil, "edge must have a valid src vertex")
-    assert(e.next.vtx ~= nil, "edge must have a valid target vertex")
-    assert(e.vtx ~= e.next.vtx, "singular edges not allowed")
-    assert(self.edges[e:key()] == nil, "edge already exist")
+    if debug_mode then
+        assert(e.vtx ~= nil, "edge must have a valid src vertex")
+        assert(e.next.vtx ~= nil, "edge must have a valid target vertex")
+        assert(e.vtx ~= e.next.vtx, "singular edges not allowed")
+        assert(self.edges[e:key()] == nil, "edge already exist")
+    end
 
     if e.id == nil then
         e.id = self.idnewedge
@@ -403,15 +408,20 @@ end
 
 -- split face into face A (prev.face==A) and B (will be created)
 function Mesh:add_edge(v1, v2, prev, next)
-    trace("add edge ",v1,"->",v2)
-    assert(v1 ~= v2, "vertices must be different")
+    if debug_mode then
+        trace("add edge ",v1,"->",v2)
+        assert(v1 ~= v2, "vertices must be different")
+    end
 
     v1 = self:get_or_add_vertex(v1)
     v2 = self:get_or_add_vertex(v2)
 
     -- disconnected, faceless edge?
     if v1.edge == nil and v2.edge == nil then
-        assert(prev == nil, "prev edges is useless when new edge is disconnected")
+        if debug_mode then
+            assert(prev == nil, "prev edges is useless when new edge is disconnected")
+        end
+
         v1.edge = Edge:new{vtx = v1, face = nil}
         v2.edge = Edge:new{vtx = v2,
                            face = nil,
@@ -433,7 +443,9 @@ function Mesh:add_edge(v1, v2, prev, next)
         local a,b = v1.edge ~= nil and v1,v2 or v2,v1
         -- vertex a has an edge
 
-        assert(prev.next.vtx == a, "invalid prev")
+        if debug_mode then
+            assert(prev.next.vtx == a, "invalid prev")
+        end
         
         local orig_edge = a.edge
 
@@ -465,11 +477,13 @@ function Mesh:add_edge(v1, v2, prev, next)
         end
     end
 
-    assert(prev.next.vtx == v1, "invalid prev")
-    assert(next.vtx == v2, "invalid next")
+    if debug_mode then
+        assert(prev.next.vtx == v1, "invalid prev")
+        assert(next.vtx == v2, "invalid next")
 
-    assert(prev.face == next.face, "next and prev must belong to the same face")
-    assert(prev.face ~= nil, "prev and next cannot be border edges")
+        assert(prev.face == next.face, "next and prev must belong to the same face")
+        assert(prev.face ~= nil, "prev and next cannot be border edges")
+    end
 
     local face = prev.face
 
@@ -488,8 +502,10 @@ function Mesh:add_edge(v1, v2, prev, next)
         v1.edge = ne
     end
 
-    assert(prev.face == ne.face)
-    assert(next.face == ne.face)
+    if debug_mode then
+        assert(prev.face == ne.face)
+        assert(next.face == ne.face)
+    end
 
     if face.edge == nil then
         face.edge = ne
@@ -525,7 +541,10 @@ function Mesh:add_edge(v1, v2, prev, next)
 end
 
 function Mesh:remove_edge(edge)
-    trace("remove edge",edge)
+    if debug_mode then
+        trace("remove edge",edge)
+    end
+
     if not self:edge_exists(edge) then
         return false
     end
@@ -582,8 +601,10 @@ end
 
 -- adds a vertex inside the face, create n faces inside input n-sided face
 function Mesh:split_face(face, v)
-    trace("split face",face," vtx #",v)
-    assert(self:get_vertex(v) == nil, "Must split face using a new vertex")
+    if debug_mode then
+        trace("split face",face," vtx #",v)
+        assert(self:get_vertex(v) == nil, "Must split face using a new vertex")
+    end
 
     v = self:add_vertex(v)
 
@@ -633,7 +654,10 @@ end
 
 -- triangulate edge.face creating a fan around edge.vtx
 function Mesh:triangulate(edge)
-    trace("triangulate",edge)
+    if debug_mode then
+        trace("triangulate",edge)
+    end
+
     local v = edge.vtx
     local prev_edge = edge.prev.prev.prev
     local next_edge = edge
@@ -645,8 +669,10 @@ function Mesh:triangulate(edge)
 end
 
 function Mesh:split_edge(edge, v)
-    trace("split edge",edge,"vtx #",v)
-    assert(self:get_vertex(v) == nil, "Must split edge using a new vertex")
+    if debug_mode then
+        trace("split edge",edge,"vtx #",v)
+        assert(self:get_vertex(v) == nil, "Must split edge using a new vertex")
+    end
 
     -- first we'll split the edge
 
