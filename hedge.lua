@@ -635,6 +635,9 @@ function Mesh:split_edge(edge, v)
         edges[#edges+1] = e
     end
 
+    self:_remove_edge(edge)
+    self:_remove_edge(edge.opp)
+
     -- split edge
     edge.prev = Edge:new{vtx = edge.vtx,
                          face = edge.face,
@@ -644,12 +647,12 @@ function Mesh:split_edge(edge, v)
         edge.vtx.edge = edge.prev
     end
 
+    -- no need to update self.edges on this one,
+    -- vertex didn't change
     edge.prev.prev.next = edge.prev
 
     edge.vtx = v
     v.edge = edge
-
-    self:_add_edge(edge.prev)
 
     -- split opp edge
     edge.opp.next = Edge:new{vtx = v,
@@ -659,11 +662,14 @@ function Mesh:split_edge(edge, v)
                              opp = edge.prev}
     edge.opp.next.next.prev = edge.opp.next
 
-    self:_add_edge(edge.opp.next)
-
     -- fix opp links
     edge.opp.opp = edge
     edge.prev.opp = edge.opp.next
+
+    self:_add_edge(edge)
+    self:_add_edge(edge.prev)
+    self:_add_edge(edge.opp)
+    self:_add_edge(edge.opp.next)
 
     return v
 end
