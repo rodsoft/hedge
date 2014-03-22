@@ -1159,6 +1159,26 @@ function test(c, out)
         assert(nfaces == 1, "wrong number of faces: "..nfaces)
         assert(nedges == 6, "wrong number of edges: "..nedges)
         assert(nvertices == 3, "wrong number of vertices: "..nvertices)
+    elseif c == "remove_border_vertex2" then
+        mesh:add_face(0,-2,-1)
+        mesh:split_face(mesh.faces[1],1)
+        mesh:triangulate(mesh.edges["1>-2"])
+        mesh:split_face(mesh.faces[3],2)
+        mesh:triangulate(mesh.edges["2>-1"])
+        mesh:split_face(mesh.faces[2],3)
+        mesh:triangulate(mesh.edges["3>-2"])
+        mesh:flip_edge(mesh.edges["-2>1"])
+        mesh:flip_edge(mesh.edges["-1>1"])
+        mesh:flip_edge(mesh.edges["-1>2"])
+
+        mesh:remove_vertex(-2)
+
+        nfaces = mesh:face_count()
+        nedges = mesh:edge_count()
+        nvertices = mesh:vertex_count()
+        assert(nfaces == 4, "wrong number of faces: "..nfaces)
+        assert(nedges == 16, "wrong number of edges: "..nedges)
+        assert(nvertices == 5, "wrong number of vertices: "..nvertices)
     end
 
     mesh:check()
