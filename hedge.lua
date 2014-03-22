@@ -20,6 +20,20 @@ M.table = table
 
 _ENV = M
 
+local enable_trace = false
+
+function trace(...)
+    if enable_trace then
+        for k,v in ipairs({...}) do
+            if k > 1 then
+                io.stderr:write(" ")
+            end
+            io.stderr:write(tostring(v))
+        end
+        io.stderr:write("\n")
+    end
+end
+
 -- VERTEX -----------------------------------------------------------------
 
 Vertex = {} -- { id = nil, edge = nil }
@@ -195,6 +209,7 @@ end
 Mesh = {} -- { faces = {}, vertices = {}, edges = {}}
 
 function Mesh:new(o)
+    trace("new mesh")
     o = o or {faces = {}, vertices = {}, edges = {}}
     setmetatable(o, self)
 
@@ -221,6 +236,7 @@ function Mesh:get_vertex(id)
 end
 
 function Mesh:add_vertex(id)
+    trace("add vertex #",id)
     assert(id ~= nil)
     local vtx = Vertex:new{id = id}
 
@@ -287,6 +303,7 @@ function Mesh:remove_face(f)
 end
 
 function Mesh:add_face(...)
+    trace("add face: ",...)
     local ids = {...}
 
     local face = self:create_face()
@@ -386,6 +403,7 @@ end
 
 -- split face into face A (prev.face==A) and B (will be created)
 function Mesh:add_edge(v1, v2, prev, next)
+    trace("add edge ",v1,"->",v2)
     assert(v1 ~= v2, "vertices must be different")
 
     v1 = self:get_or_add_vertex(v1)
@@ -507,6 +525,7 @@ function Mesh:add_edge(v1, v2, prev, next)
 end
 
 function Mesh:remove_edge(edge)
+    trace("remove edge",edge)
     if not self:edge_exists(edge) then
         return false
     end
@@ -563,6 +582,7 @@ end
 
 -- adds a vertex inside the face, create n faces inside input n-sided face
 function Mesh:split_face(face, v)
+    trace("split face",face," vtx #",v)
     assert(self:get_vertex(v) == nil, "Must split face using a new vertex")
 
     v = self:add_vertex(v)
@@ -613,6 +633,7 @@ end
 
 -- triangulate edge.face creating a fan around edge.vtx
 function Mesh:triangulate(edge)
+    trace("triangulate",edge)
     local v = edge.vtx
     local prev_edge = edge.prev.prev.prev
     local next_edge = edge
@@ -624,6 +645,7 @@ function Mesh:triangulate(edge)
 end
 
 function Mesh:split_edge(edge, v)
+    trace("split edge",edge,"vtx #",v)
     assert(self:get_vertex(v) == nil, "Must split edge using a new vertex")
 
     -- first we'll split the edge
@@ -675,6 +697,7 @@ function Mesh:split_edge(edge, v)
 end
 
 function Mesh:flip_edge(edge)
+    trace("flip edge",edge)
     -- if it's not an internal edge, there's no point in flipping it
     if edge.face == nil or edge.opp.face == nil then
         return false
@@ -746,6 +769,7 @@ function Mesh:flip_edge(edge)
 end
 
 function Mesh:remove_vertex(vtx)
+    trace("remove vertex",vtx)
     vtx = self:get_vertex(vtx)
     if vtx == nil then
         return false
